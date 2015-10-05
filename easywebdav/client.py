@@ -73,7 +73,8 @@ class OperationFailed(WebdavException):
 
 class Client(object):
     def __init__(self, host, port=0, auth=None, username=None, password=None,
-                 protocol='http', verify_ssl=True, path=None, cert=None):
+                 protocol='http', verify_ssl=True, path=None, cert=None,
+                 custom_headers={}):
         if not port:
             port = 443 if protocol == 'https' else 80
         self.baseurl = '{0}://{1}:{2}'.format(protocol, host, port)
@@ -83,6 +84,7 @@ class Client(object):
         self.session = requests.session()
         self.session.verify = verify_ssl
         self.session.stream = True
+        self.custom_headers = custom_headers
 
         if cert:
             self.session.cert = cert
@@ -94,6 +96,11 @@ class Client(object):
 
     def _send(self, method, path, expected_code, **kwargs):
         url = self._get_url(path)
+        if self.custom_headers:
+            if 'headers' in kwargs:
+                kwargs['headers'].update(self.custom_headers)
+            else:
+                kwargs['headers'] = self.custom_headers
         response = self.session.request(method, url, allow_redirects=False, **kwargs)
         if isinstance(expected_code, Number) and response.status_code != expected_code \
             or not isinstance(expected_code, Number) and response.status_code not in expected_code:
